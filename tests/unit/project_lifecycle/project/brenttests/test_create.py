@@ -20,7 +20,9 @@ from tests.common.project_testing import (ProjectSimTestCase, PROJECT_CONTAINS_D
                                             BRENT_SOL005_NS_INSTANCE_FILE, PROJECT_TOSCA_META_DIR, PROJECT_TOSCA_META_FILE, BRENT_RESTCONF_DIR, 
                                             BRENT_RESTCONF_SCRIPTS_DIR, BRENT_RESTCONF_CREATE_REQUEST_FILE,
                                             BRENT_RESTCONF_UPDATE_REQUEST_FILE, BRENT_RESTCONF_DELETE_REQUEST_FILE,
-                                            BRENT_NETCONF_DIR, BRENT_NETCONF_SCRIPTS_DIR, BRENT_NETCONF_CREATE_REQUEST_FILE, BRENT_NETCONF_UPDATE_REQUEST_FILE, BRENT_NETCONF_DELETE_REQUEST_FILE)
+                                            BRENT_NETCONF_DIR, BRENT_NETCONF_SCRIPTS_DIR, BRENT_NETCONF_CREATE_REQUEST_FILE, BRENT_NETCONF_UPDATE_REQUEST_FILE, BRENT_NETCONF_DELETE_REQUEST_FILE, 
+                                            BRENT_VELOCLOUD_DIR, BRENT_VELOCLOUD_SCRIPTS_DIR, BRENT_VELOCLOUD_EDGE_PROVISION_REQUEST_FILE, BRENT_VELOCLOUD_DELETE_EDGE_REQUEST_FILE, 
+                                            BRENT_VIPTELA_DIR, BRENT_VIPTELA_SCRIPTS_DIR, BRENT_VIPTELA_ATTACH_DEVICE_REQUEST_FILE)
 from lmctl.project.source.core import Project
 
 EXPECTED_OPENSTACK_EXAMPLE_HEAT = '''\
@@ -285,6 +287,85 @@ default-driver:
       - \'*\'
 '''
 
+EXPECTED_VELOCLOUD_DESCRIPTOR = '''\
+description: descriptor for {0}
+properties:
+  enterpriseId:
+    description: Identifier for the VeloCloud
+    type: string
+    required: true
+  configurationId:
+    description: configuration Id
+    type: string
+    required: true
+  alertsEnabled:
+    description: alertsEnabled
+    type: string
+    required: true
+  modelNumber:
+    description: modelNumber
+    type: string
+    required: true
+  edgeLicenseId:
+    description: edgeLicenseId
+    type: integer
+    required: true
+  deviceFamily:
+    description: deviceFamily
+    type: string
+    required: true
+  sdwanName:
+    description: name
+    type: string
+    required: true
+lifecycle:
+  Create: {{}}
+  Delete: {{}}
+default-driver:
+  velocloud:
+    selector:
+      infrastructure-type:
+      - \'*\'
+'''
+
+EXPECTED_VIPTELA_DESCRIPTOR = '''\
+description: descriptor for {0}
+properties:
+  templateId:
+    description: Identifier for the device template
+    type: string
+    required: true
+  deviceUuid:
+    description: Identifier for the device to attach to the template
+    type: string
+    required: true
+  lanIP:
+    description: LAN IP
+    type: string
+    required: true
+  hostname:
+    description: IP or hostname of the vedge
+    type: string
+    required: true
+  systemIP:
+    description: IP or hostname of the vedge mgmt
+    type: string
+    required: true
+  siteId:
+    description: Identifier for the Site
+    type: string
+    required: true
+lifecycle:
+  Create: {{}}
+  Install: {{}}
+  Delete: {{}}
+default-driver:
+  velocloud:
+    selector:
+      infrastructure-type:
+      - \'*\'
+'''
+
 EXPECTED_TOSCA_META = '''\
 TOSCA-Meta-File-Version: 1.0
 CSAR-Version: 1.1
@@ -503,6 +584,69 @@ class TestCreateBrentProjects(ProjectSimTestCase):
         tester.assert_has_file_path(os.path.join(netconf_scripts_dir, BRENT_NETCONF_CREATE_REQUEST_FILE))
         tester.assert_has_file_path(os.path.join(netconf_scripts_dir, BRENT_NETCONF_UPDATE_REQUEST_FILE))
         tester.assert_has_file_path(os.path.join(netconf_scripts_dir, BRENT_NETCONF_DELETE_REQUEST_FILE))
+
+    def test_create_velocloud(self):
+        request = CreateResourceProjectRequest()
+        request.name = 'Test'
+        request.version = '0.1'
+        request.target_location = self.tmp_dir
+        request.resource_manager = 'brent'
+        request.params['driver'] = 'velocloud'
+        creator = ProjectCreator(request, CreateOptions())
+        creator.create()
+        project = Project(self.tmp_dir)
+        tester = self.assert_project(project)
+        tester.assert_has_config({
+            'schema': '2.0',
+            'name': 'Test',
+            'version': '0.1',
+            'packaging': 'tgz',
+            'type': 'Resource',
+            'resource-manager': 'brent'
+        })
+        tester.assert_has_directory(os.path.join(BRENT_DEFINITIONS_DIR))
+        lm_dir = os.path.join(BRENT_DEFINITIONS_DIR, BRENT_DESCRIPTOR_DIR)
+        tester.assert_has_directory(lm_dir)
+        descriptor_path = os.path.join(lm_dir, BRENT_DESCRIPTOR_YML_FILE)
+        tester.assert_has_file(descriptor_path, EXPECTED_VELOCLOUD_DESCRIPTOR.format('Test'))
+        tester.assert_has_directory(os.path.join(BRENT_LIFECYCLE_DIR))
+        velocloud_dir = os.path.join(BRENT_LIFECYCLE_DIR, BRENT_VELOCLOUD_DIR)
+        tester.assert_has_directory(velocloud_dir)
+        velocloud_scripts_dir = os.path.join(velocloud_dir, BRENT_VELOCLOUD_SCRIPTS_DIR)
+        tester.assert_has_directory(velocloud_scripts_dir)
+        tester.assert_has_file_path(os.path.join(velocloud_scripts_dir, BRENT_VELOCLOUD_EDGE_PROVISION_REQUEST_FILE))
+        tester.assert_has_file_path(os.path.join(velocloud_scripts_dir, BRENT_VELOCLOUD_DELETE_EDGE_REQUEST_FILE))
+        
+    def test_create_viptela(self):
+        request = CreateResourceProjectRequest()
+        request.name = 'Test'
+        request.version = '0.1'
+        request.target_location = self.tmp_dir
+        request.resource_manager = 'brent'
+        request.params['driver'] = 'viptela'
+        creator = ProjectCreator(request, CreateOptions())
+        creator.create()
+        project = Project(self.tmp_dir)
+        tester = self.assert_project(project)
+        tester.assert_has_config({
+            'schema': '2.0',
+            'name': 'Test',
+            'version': '0.1',
+            'packaging': 'tgz',
+            'type': 'Resource',
+            'resource-manager': 'brent'
+        })
+        tester.assert_has_directory(os.path.join(BRENT_DEFINITIONS_DIR))
+        lm_dir = os.path.join(BRENT_DEFINITIONS_DIR, BRENT_DESCRIPTOR_DIR)
+        tester.assert_has_directory(lm_dir)
+        descriptor_path = os.path.join(lm_dir, BRENT_DESCRIPTOR_YML_FILE)
+        tester.assert_has_file(descriptor_path, EXPECTED_VIPTELA_DESCRIPTOR.format('Test'))
+        tester.assert_has_directory(os.path.join(BRENT_LIFECYCLE_DIR))
+        viptela_dir = os.path.join(BRENT_LIFECYCLE_DIR, BRENT_VIPTELA_DIR)
+        tester.assert_has_directory(viptela_dir)
+        viptela_scripts_dir = os.path.join(viptela_dir, BRENT_VIPTELA_SCRIPTS_DIR)
+        tester.assert_has_directory(viptela_scripts_dir)
+        tester.assert_has_file_path(os.path.join(viptela_scripts_dir, BRENT_VIPTELA_ATTACH_DEVICE_REQUEST_FILE))        
 
     def test_create_sol003_with_lifecycle_param(self):
         request = CreateResourceProjectRequest()
@@ -1036,4 +1180,198 @@ class TestCreateBrentProjects(ProjectSimTestCase):
         tester.assert_has_file_path(os.path.join(netconf_scripts_dir, BRENT_NETCONF_UPDATE_REQUEST_FILE))
         tester.assert_has_file_path(os.path.join(netconf_scripts_dir, BRENT_NETCONF_DELETE_REQUEST_FILE))
         
+    def test_create_velocloud_with_subprojects(self):
+        request = CreateResourceProjectRequest()
+        request.name = 'Test'
+        request.target_location = self.tmp_dir
+        request.resource_manager = 'brent'
+        request.version = '0.1'
+        request.params['driver'] = 'velocloud'
+        subprojectA_request = ResourceSubprojectRequest()
+        subprojectA_request.name = 'SubA'
+        subprojectA_request.directory = 'SubprojectA'
+        subprojectA_request.resource_manager = 'brent'
+        subprojectA_request.params['driver'] = 'ansible'
+        subprojectA_request.params['inf'] = 'openstack'
+        request.subproject_requests.append(subprojectA_request)
+        subprojectB_request = ResourceSubprojectRequest()
+        subprojectB_request.name = 'SubB'
+        subprojectB_request.directory = 'SubprojectB'
+        subprojectB_request.resource_manager = 'brent'
+        request.subproject_requests.append(subprojectB_request)
+        creator = ProjectCreator(request, CreateOptions())
+        creator.create()
+        project = Project(self.tmp_dir)
+        tester = self.assert_project(project)
+        tester.assert_has_config({
+            'schema': '2.0',
+            'name': 'Test',
+            'packaging': 'tgz',
+            'version': '0.1',
+            'type': 'Resource',
+            'resource-manager': 'brent',
+            'contains': [
+                {
+                    'name': 'SubA',
+                    'directory': 'SubprojectA',
+                    'type': 'Resource',
+                    'resource-manager': 'brent'
+                },
+                {
+                    'name': 'SubB',
+                    'directory': 'SubprojectB',
+                    'type': 'Resource',
+                    'resource-manager': 'brent'
+                }
+            ]
+        })
+        tester.assert_has_directory(os.path.join(BRENT_DEFINITIONS_DIR))
+        lm_dir = os.path.join(BRENT_DEFINITIONS_DIR, BRENT_DESCRIPTOR_DIR)
+        tester.assert_has_directory(lm_dir)
+        descriptor_path = os.path.join(lm_dir, BRENT_DESCRIPTOR_YML_FILE)
+        tester.assert_has_file(descriptor_path, EXPECTED_VELOCLOUD_DESCRIPTOR.format('Test'))
+        tester.assert_has_directory(os.path.join(BRENT_LIFECYCLE_DIR))
+        velocloud_dir = os.path.join(BRENT_LIFECYCLE_DIR, BRENT_VELOCLOUD_DIR)
+        tester.assert_has_directory(velocloud_dir)
+        velocloud_scripts_dir = os.path.join(velocloud_dir, BRENT_VELOCLOUD_SCRIPTS_DIR)
+        tester.assert_has_directory(velocloud_scripts_dir)
+        tester.assert_has_file_path(os.path.join(velocloud_scripts_dir, BRENT_VELOCLOUD_EDGE_PROVISION_REQUEST_FILE))
+        tester.assert_has_file_path(os.path.join(velocloud_scripts_dir, BRENT_VELOCLOUD_DELETE_EDGE_REQUEST_FILE))
+        tester.assert_has_directory(PROJECT_CONTAINS_DIR)
+
+        subprojectA_path = os.path.join(PROJECT_CONTAINS_DIR, 'SubprojectA')
+        tester.assert_has_directory(subprojectA_path)
+        tester.assert_has_directory(os.path.join(subprojectA_path, BRENT_DEFINITIONS_DIR))
+        lm_dir = os.path.join(subprojectA_path, BRENT_DEFINITIONS_DIR, BRENT_DESCRIPTOR_DIR)
+        tester.assert_has_directory(lm_dir)
+        descriptor_path = os.path.join(lm_dir, BRENT_DESCRIPTOR_YML_FILE)
+        tester.assert_has_file(descriptor_path, EXPECTED_OS_AND_ANSIBLE_DESCRIPTOR.format('SubA'))
+        tester.assert_has_directory(os.path.join(subprojectA_path, BRENT_LIFECYCLE_DIR))
+        openstack_dir = os.path.join(subprojectA_path, BRENT_LIFECYCLE_DIR, BRENT_OPENSTACK_DIR)
+        tester.assert_has_directory(openstack_dir)
+        openstack_heat_path = os.path.join(openstack_dir, BRENT_OPENSTACK_HEAT_YAML_FILE)
+        tester.assert_has_file(openstack_heat_path, EXPECTED_OPENSTACK_EXAMPLE_HEAT)
+        ansible_dir = os.path.join(subprojectA_path, BRENT_LIFECYCLE_DIR, BRENT_LIFECYCLE_ANSIBLE_DIR)
+        tester.assert_has_directory(ansible_dir)
+        ansible_scripts_dir = os.path.join(ansible_dir, BRENT_LIFECYCLE_ANSIBLE_SCRIPTS_DIR)
+        tester.assert_has_directory(ansible_scripts_dir)
+        tester.assert_has_file(os.path.join(ansible_scripts_dir, 'Install.yaml'), EXPECTED_ANSIBLE_INSTALL_SCRIPT)
+        ansible_config_dir = os.path.join(ansible_dir, BRENT_LIFECYCLE_ANSIBLE_CONFIG_DIR)
+        tester.assert_has_directory(ansible_config_dir)
+        tester.assert_has_file(os.path.join(ansible_config_dir, BRENT_LIFECYCLE_ANSIBLE_INVENTORY_FILE),
+                               EXPECTED_ANSIBLE_INVENTORY)
+        ansible_hostvars_dir = os.path.join(ansible_config_dir, BRENT_LIFECYCLE_ANSIBLE_CONFIG_HOSTVARS_DIR_NAME)
+        tester.assert_has_directory(ansible_hostvars_dir)
+        tester.assert_has_file(os.path.join(ansible_hostvars_dir, 'example-host.yml'), EXPECTED_ANSIBLE_HOST_VARS)
+
+        subprojectB_path = os.path.join(PROJECT_CONTAINS_DIR, 'SubprojectB')
+        tester.assert_has_directory(subprojectB_path)
+        tester.assert_has_directory(os.path.join(subprojectB_path, BRENT_DEFINITIONS_DIR))
+        lm_dir = os.path.join(subprojectB_path, BRENT_DEFINITIONS_DIR, BRENT_DESCRIPTOR_DIR)
+        tester.assert_has_directory(lm_dir)
+        descriptor_path = os.path.join(lm_dir, BRENT_DESCRIPTOR_YML_FILE)
+        tester.assert_has_file(descriptor_path, EXPECTED_VELOCLOUD_DESCRIPTOR.format('SubB'))
+        tester.assert_has_directory(os.path.join(subprojectB_path, BRENT_LIFECYCLE_DIR))
+        velocloud_dir = os.path.join(subprojectB_path, BRENT_LIFECYCLE_DIR, BRENT_VELOCLOUD_DIR)
+        tester.assert_has_directory(velocloud_dir)
+        velocloud_scripts_dir = os.path.join(velocloud_dir, BRENT_VELOCLOUD_SCRIPTS_DIR)
+        tester.assert_has_directory(velocloud_scripts_dir)
+        tester.assert_has_file_path(os.path.join(velocloud_scripts_dir, BRENT_VELOCLOUD_EDGE_PROVISION_REQUEST_FILE))
+        tester.assert_has_file_path(os.path.join(velocloud_scripts_dir, BRENT_VELOCLOUD_DELETE_EDGE_REQUEST_FILE))
       
+    def test_create_viptela_with_subprojects(self):
+        request = CreateResourceProjectRequest()
+        request.name = 'Test'
+        request.target_location = self.tmp_dir
+        request.resource_manager = 'brent'
+        request.version = '0.1'
+        request.params['driver'] = 'viptela'
+        subprojectA_request = ResourceSubprojectRequest()
+        subprojectA_request.name = 'SubA'
+        subprojectA_request.directory = 'SubprojectA'
+        subprojectA_request.resource_manager = 'brent'
+        subprojectA_request.params['driver'] = 'ansible'
+        subprojectA_request.params['inf'] = 'openstack'
+        request.subproject_requests.append(subprojectA_request)
+        subprojectB_request = ResourceSubprojectRequest()
+        subprojectB_request.name = 'SubB'
+        subprojectB_request.directory = 'SubprojectB'
+        subprojectB_request.resource_manager = 'brent'
+        request.subproject_requests.append(subprojectB_request)
+        creator = ProjectCreator(request, CreateOptions())
+        creator.create()
+        project = Project(self.tmp_dir)
+        tester = self.assert_project(project)
+        tester.assert_has_config({
+            'schema': '2.0',
+            'name': 'Test',
+            'packaging': 'tgz',
+            'version': '0.1',
+            'type': 'Resource',
+            'resource-manager': 'brent',
+            'contains': [
+                {
+                    'name': 'SubA',
+                    'directory': 'SubprojectA',
+                    'type': 'Resource',
+                    'resource-manager': 'brent'
+                },
+                {
+                    'name': 'SubB',
+                    'directory': 'SubprojectB',
+                    'type': 'Resource',
+                    'resource-manager': 'brent'
+                }
+            ]
+        })
+        tester.assert_has_directory(os.path.join(BRENT_DEFINITIONS_DIR))
+        lm_dir = os.path.join(BRENT_DEFINITIONS_DIR, BRENT_DESCRIPTOR_DIR)
+        tester.assert_has_directory(lm_dir)
+        descriptor_path = os.path.join(lm_dir, BRENT_DESCRIPTOR_YML_FILE)
+        tester.assert_has_file(descriptor_path, EXPECTED_VIPTELA_DESCRIPTOR.format('Test'))
+        tester.assert_has_directory(os.path.join(BRENT_LIFECYCLE_DIR))
+        viptela_dir = os.path.join(BRENT_LIFECYCLE_DIR, BRENT_VIPTELA_DIR)
+        tester.assert_has_directory(viptela_dir)
+        viptela_scripts_dir = os.path.join(viptela_dir, BRENT_VIPTELA_SCRIPTS_DIR)
+        tester.assert_has_directory(viptela_scripts_dir)
+        tester.assert_has_file_path(os.path.join(viptela_scripts_dir, BRENT_VIPTELA_ATTACH_DEVICE_REQUEST_FILE))
+        tester.assert_has_directory(PROJECT_CONTAINS_DIR)
+
+        subprojectA_path = os.path.join(PROJECT_CONTAINS_DIR, 'SubprojectA')
+        tester.assert_has_directory(subprojectA_path)
+        tester.assert_has_directory(os.path.join(subprojectA_path, BRENT_DEFINITIONS_DIR))
+        lm_dir = os.path.join(subprojectA_path, BRENT_DEFINITIONS_DIR, BRENT_DESCRIPTOR_DIR)
+        tester.assert_has_directory(lm_dir)
+        descriptor_path = os.path.join(lm_dir, BRENT_DESCRIPTOR_YML_FILE)
+        tester.assert_has_file(descriptor_path, EXPECTED_OS_AND_ANSIBLE_DESCRIPTOR.format('SubA'))
+        tester.assert_has_directory(os.path.join(subprojectA_path, BRENT_LIFECYCLE_DIR))
+        openstack_dir = os.path.join(subprojectA_path, BRENT_LIFECYCLE_DIR, BRENT_OPENSTACK_DIR)
+        tester.assert_has_directory(openstack_dir)
+        openstack_heat_path = os.path.join(openstack_dir, BRENT_OPENSTACK_HEAT_YAML_FILE)
+        tester.assert_has_file(openstack_heat_path, EXPECTED_OPENSTACK_EXAMPLE_HEAT)
+        ansible_dir = os.path.join(subprojectA_path, BRENT_LIFECYCLE_DIR, BRENT_LIFECYCLE_ANSIBLE_DIR)
+        tester.assert_has_directory(ansible_dir)
+        ansible_scripts_dir = os.path.join(ansible_dir, BRENT_LIFECYCLE_ANSIBLE_SCRIPTS_DIR)
+        tester.assert_has_directory(ansible_scripts_dir)
+        tester.assert_has_file(os.path.join(ansible_scripts_dir, 'Install.yaml'), EXPECTED_ANSIBLE_INSTALL_SCRIPT)
+        ansible_config_dir = os.path.join(ansible_dir, BRENT_LIFECYCLE_ANSIBLE_CONFIG_DIR)
+        tester.assert_has_directory(ansible_config_dir)
+        tester.assert_has_file(os.path.join(ansible_config_dir, BRENT_LIFECYCLE_ANSIBLE_INVENTORY_FILE),
+                               EXPECTED_ANSIBLE_INVENTORY)
+        ansible_hostvars_dir = os.path.join(ansible_config_dir, BRENT_LIFECYCLE_ANSIBLE_CONFIG_HOSTVARS_DIR_NAME)
+        tester.assert_has_directory(ansible_hostvars_dir)
+        tester.assert_has_file(os.path.join(ansible_hostvars_dir, 'example-host.yml'), EXPECTED_ANSIBLE_HOST_VARS)
+
+        subprojectB_path = os.path.join(PROJECT_CONTAINS_DIR, 'SubprojectB')
+        tester.assert_has_directory(subprojectB_path)
+        tester.assert_has_directory(os.path.join(subprojectB_path, BRENT_DEFINITIONS_DIR))
+        lm_dir = os.path.join(subprojectB_path, BRENT_DEFINITIONS_DIR, BRENT_DESCRIPTOR_DIR)
+        tester.assert_has_directory(lm_dir)
+        descriptor_path = os.path.join(lm_dir, BRENT_DESCRIPTOR_YML_FILE)
+        tester.assert_has_file(descriptor_path, EXPECTED_VIPTELA_DESCRIPTOR.format('SubB'))
+        tester.assert_has_directory(os.path.join(subprojectB_path, BRENT_LIFECYCLE_DIR))
+        viptela_dir = os.path.join(subprojectB_path, BRENT_LIFECYCLE_DIR, BRENT_VIPTELA_DIR)
+        tester.assert_has_directory(viptela_dir)
+        viptela_scripts_dir = os.path.join(viptela_dir, BRENT_VIPTELA_SCRIPTS_DIR)
+        tester.assert_has_directory(viptela_scripts_dir)
+        tester.assert_has_file_path(os.path.join(viptela_scripts_dir, BRENT_VIPTELA_ATTACH_DEVICE_REQUEST_FILE))      

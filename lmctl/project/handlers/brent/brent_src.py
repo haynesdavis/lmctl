@@ -218,7 +218,24 @@ class NetConfTree(files.Tree):
     @property
     def scripts_path(self):
         return self.resolve_relative_path(NetConfTree.TEMPLATE_DIR_NAME)
-    
+
+class VeloCloudTree(files.Tree):
+    TEMPLATE_DIR_NAME = 'template'
+    EDGE_PROVISION_REQUEST_FILE_NAME = 'EdgeProvision.json'
+    DELETE_EDGE_REQUEST_FILE_NAME = 'DeleteEdge.json'
+
+    @property
+    def scripts_path(self):
+        return self.resolve_relative_path(VeloCloudTree.TEMPLATE_DIR_NAME)
+
+class ViptelaTree(files.Tree):
+    TEMPLATE_DIR_NAME = 'template'
+    ATTACH_DEVICE_REQUEST_FILE_NAME = 'AttachDevice.json'
+
+    @property
+    def scripts_path(self):
+        return self.resolve_relative_path(ViptelaTree.TEMPLATE_DIR_NAME)
+
 class KubernetesLifecycleTree(files.Tree):
     
     OBJECTS_DIR_NAME = 'objects'
@@ -258,6 +275,8 @@ class BrentSourceTree(files.Tree):
     KUBERNETES_LIFECYCLE_DIR_NAME = 'kubernetes'
     RESTCONF_LIFECYCLE_DIR_NAME = 'restconf'
     NETCONF_LIFECYCLE_DIR_NAME = 'netconf'
+    VELOCLOUD_LIFECYCLE_DIR_NAME = 'velocloud'
+    VIPTELA_LIFECYCLE_DIR_NAME = 'viptela'
     
     @property
     def definitions_path(self):
@@ -322,7 +341,14 @@ class BrentSourceTree(files.Tree):
     @property
     def netconf_lifecycle_path(self):
         return self.resolve_relative_path(BrentSourceTree.LIFECYCLE_DIR_NAME, BrentSourceTree.NETCONF_LIFECYCLE_DIR_NAME)
-        
+
+    @property
+    def velocloud_lifecycle_path(self):
+        return self.resolve_relative_path(BrentSourceTree.LIFECYCLE_DIR_NAME, BrentSourceTree.VELOCLOUD_LIFECYCLE_DIR_NAME)
+
+    @property
+    def viptela_lifecycle_path(self):
+        return self.resolve_relative_path(BrentSourceTree.LIFECYCLE_DIR_NAME, BrentSourceTree.VIPTELA_LIFECYCLE_DIR_NAME)
 
 DRIVER_PARAM_NAME = 'driver'
 INFRASTRUCTURE_PARAM_NAME = 'inf'
@@ -334,6 +360,8 @@ LIFECYCLE_TYPE_KUBERNETES = 'kubernetes'
 LIFECYCLE_TYPE_RESTCONF = 'restconf'
 LIFECYCLE_TYPE_NETCONF = 'netconf'
 INFRASTRUCTURE_TYPE_OPENSTACK = 'openstack'
+LIFECYCLE_TYPE_VELOCLOUD = 'velocloud'
+LIFECYCLE_TYPE_VIPTELA = 'viptela'
 SOL003_SCRIPT_NAMES = []
 SOL003_SCRIPT_NAMES.append(Sol003LifecycleTree.CREATE_VNF_REQUEST_FILE_NAME)
 SOL003_SCRIPT_NAMES.append(Sol003LifecycleTree.HEAL_VNF_REQUEST_FILE_NAME)
@@ -360,6 +388,11 @@ NETCONF_SCRIPT_NAMES = []
 NETCONF_SCRIPT_NAMES.append(NetConfTree.CREATE_NC_REQUEST_FILE_NAME)
 NETCONF_SCRIPT_NAMES.append(NetConfTree.UPDATE_NC_REQUEST_FILE_NAME)
 NETCONF_SCRIPT_NAMES.append(NetConfTree.DELETE_NC_REQUEST_FILE_NAME)
+VELOCLOUD_SCRIPT_NAMES = []
+VELOCLOUD_SCRIPT_NAMES.append(VeloCloudTree.EDGE_PROVISION_REQUEST_FILE_NAME)
+VELOCLOUD_SCRIPT_NAMES.append(VeloCloudTree.DELETE_EDGE_REQUEST_FILE_NAME)
+VIPTELA_SCRIPT_NAMES = []
+VIPTELA_SCRIPT_NAMES.append(ViptelaTree.ATTACH_DEVICE_REQUEST_FILE_NAME)
 
 class BrentSourceCreatorDelegate(handlers_api.ResourceSourceCreatorDelegate):
 
@@ -368,8 +401,8 @@ class BrentSourceCreatorDelegate(handlers_api.ResourceSourceCreatorDelegate):
 
     def get_params(self, source_request):
         params = []
-        params.append(handlers_api.SourceParam(DRIVER_PARAM_NAME, required=False, default_value=None, allowed_values=[LIFECYCLE_TYPE_ANSIBLE, LIFECYCLE_TYPE_SOL003, LIFECYCLE_TYPE_SOL005, LIFECYCLE_TYPE_KUBERNETES, LIFECYCLE_TYPE_RESTCONF, LIFECYCLE_TYPE_NETCONF]))
-        params.append(handlers_api.SourceParam(LIFECYCLE_PARAM_NAME, required=False, default_value=None, allowed_values=[LIFECYCLE_TYPE_ANSIBLE, LIFECYCLE_TYPE_SOL003, LIFECYCLE_TYPE_SOL005, LIFECYCLE_TYPE_KUBERNETES, LIFECYCLE_TYPE_RESTCONF, LIFECYCLE_TYPE_NETCONF]))
+        params.append(handlers_api.SourceParam(DRIVER_PARAM_NAME, required=False, default_value=None, allowed_values=[LIFECYCLE_TYPE_ANSIBLE, LIFECYCLE_TYPE_SOL003, LIFECYCLE_TYPE_SOL005, LIFECYCLE_TYPE_KUBERNETES, LIFECYCLE_TYPE_RESTCONF, LIFECYCLE_TYPE_NETCONF, LIFECYCLE_TYPE_VELOCLOUD, LIFECYCLE_TYPE_VIPTELA]))
+        params.append(handlers_api.SourceParam(LIFECYCLE_PARAM_NAME, required=False, default_value=None, allowed_values=[LIFECYCLE_TYPE_ANSIBLE, LIFECYCLE_TYPE_SOL003, LIFECYCLE_TYPE_SOL005, LIFECYCLE_TYPE_KUBERNETES, LIFECYCLE_TYPE_RESTCONF, LIFECYCLE_TYPE_NETCONF, LIFECYCLE_TYPE_VELOCLOUD, LIFECYCLE_TYPE_VIPTELA]))
         params.append(handlers_api.SourceParam(INFRASTRUCTURE_PARAM_NAME, required=False, default_value=None, allowed_values=[INFRASTRUCTURE_TYPE_OPENSTACK, LIFECYCLE_TYPE_KUBERNETES]))
         return params
 
@@ -605,6 +638,80 @@ class BrentSourceCreatorDelegate(handlers_api.ResourceSourceCreatorDelegate):
             descriptor.insert_lifecycle('Create')
             descriptor.insert_lifecycle('Delete')
             descriptor.insert_lifecycle('Upgrade')
+        elif lifecycle_type == LIFECYCLE_TYPE_VELOCLOUD:
+            file_ops.append(
+                handlers_api.CreateDirectoryOp(source_tree.velocloud_lifecycle_path, handlers_api.EXISTING_IGNORE))
+            velocloud_tree = VeloCloudTree(source_tree.velocloud_lifecycle_path)
+            file_ops.append(handlers_api.CreateDirectoryOp(velocloud_tree.scripts_path, handlers_api.EXISTING_IGNORE))
+            current_path = os.path.abspath(__file__)
+            dir_path = os.path.dirname(current_path)
+            velocloud_scripts_template_path = os.path.join(dir_path, 'velocloud', 'template')
+            for script_name in VELOCLOUD_SCRIPT_NAMES:
+                orig_script_path = os.path.join(velocloud_scripts_template_path, script_name)
+                with open(orig_script_path, 'r') as f:
+                    content = f.read()
+                file_ops.append(handlers_api.CreateFileOp(os.path.join(velocloud_tree.scripts_path, script_name), content,
+                                                          handlers_api.EXISTING_IGNORE))
+        
+            descriptor.insert_default_driver('velocloud', infrastructure_types=['*'])
+            descriptor.add_property('enterpriseId', description='Identifier for the VeloCloud',
+                                    ptype='string', required=True)
+            descriptor.add_property('configurationId',
+                                    description='configuration Id',
+                                    ptype='string', required=True)
+            descriptor.add_property('alertsEnabled',
+                                    description='alertsEnabled',
+                                    ptype='string', required=True)
+            descriptor.add_property('modelNumber',
+                                    description='modelNumber',
+                                    ptype='string', required=True)
+            descriptor.add_property('edgeLicenseId',
+                                    description='edgeLicenseId',
+                                    ptype='integer', required=True)
+            descriptor.add_property('deviceFamily',
+                                    description='deviceFamily',
+                                    ptype='string', required=True)
+            descriptor.add_property('sdwanName',
+                                    description='name',
+                                    ptype='string', required=True)
+            descriptor.insert_lifecycle('Create')
+            descriptor.insert_lifecycle('Delete')
+        elif lifecycle_type == LIFECYCLE_TYPE_VIPTELA:
+            file_ops.append(
+                handlers_api.CreateDirectoryOp(source_tree.viptela_lifecycle_path, handlers_api.EXISTING_IGNORE))
+            viptela_tree = VeloCloudTree(source_tree.viptela_lifecycle_path)
+            file_ops.append(handlers_api.CreateDirectoryOp(viptela_tree.scripts_path, handlers_api.EXISTING_IGNORE))
+            current_path = os.path.abspath(__file__)
+            dir_path = os.path.dirname(current_path)
+            viptela_scripts_template_path = os.path.join(dir_path, 'viptela', 'template')
+            for script_name in VIPTELA_SCRIPT_NAMES:
+                orig_script_path = os.path.join(viptela_scripts_template_path, script_name)
+                with open(orig_script_path, 'r') as f:
+                    content = f.read()
+                file_ops.append(handlers_api.CreateFileOp(os.path.join(viptela_tree.scripts_path, script_name), content,
+                                                          handlers_api.EXISTING_IGNORE))
+        
+            descriptor.insert_default_driver('viptela', infrastructure_types=['*'])
+            descriptor.add_property('templateId', description='Identifier for the device template',
+                                    ptype='string', required=True)
+            descriptor.add_property('deviceUuid',
+                                    description='Identifier for the device to attach to the template',
+                                    ptype='string', required=True)
+            descriptor.add_property('lanIP',
+                                    description='LAN IP',
+                                    ptype='string', required=True)
+            descriptor.add_property('hostname',
+                                    description='IP or hostname of the vedge',
+                                    ptype='string', required=True)
+            descriptor.add_property('systemIP',
+                                    description='IP or hostname of the vedge mgmt',
+                                    ptype='string', required=True)
+            descriptor.add_property('siteId',
+                                    description='Identifier for the Site',
+                                    ptype='string', required=True)
+            descriptor.insert_lifecycle('Create')
+            descriptor.insert_lifecycle('Delete')
+            descriptor.insert_lifecycle('Install')
 
 class BrentSourceHandlerDelegate(handlers_api.ResourceSourceHandlerDelegate):
     

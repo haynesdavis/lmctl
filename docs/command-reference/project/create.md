@@ -48,7 +48,7 @@ The following table describes the known params available for projects using the 
 
 | Name | Description | Options                              | Default | 
 | ---- | ---- |------------------------------------------------| --- |
-| driver | This parameter guides the creation of the Project (or Subproject) with example files for the intended driver | ansible, sol003, sol005, restconf, kubernetes, netconf | - |
+| driver | This parameter guides the creation of the Project (or Subproject) with example files for the intended driver | ansible, sol003, sol005, restconf, kubernetes, netconf, velocloud, viptela | - |
 | lifecycle | Deprecated: same as `driver` | ansible, sol003, sol005, restconf, kubernetes, netconf | - |
 | inf | This parameter guides the creation of the Project (or Subproject) with example files for a separate driver to be used on Create/Delete | openstack, kubernetes                | - |
 
@@ -89,6 +89,16 @@ Resource with Netconf driver for all transitions (Create, Update ,Delete are inc
 lmctl project create --type Resource --param driver netconf
 ```
 
+Resource with VeloCloud driver for all transitions (Create, Update ,Delete are included in the generated descriptor):
+```
+lmctl project create --type Resource --param driver velocloud
+```
+
+Resource with Viptela driver for all transitions (Create, Update ,Delete are included in the generated descriptor):
+```
+lmctl project create --type Resource --param driver viptela
+```
+
 Resource with Openstack driver for Create/Delete (will be included in the generated descriptor) but Sol003 driver for all others (only Install, Configure and Uninstall are included in the generated descriptor):
 ```
 lmctl project create --type Resource --param driver sol003 --param inf openstack
@@ -120,5 +130,5 @@ The following table describes the known params available for projects using the 
 
 | Name | Description | Options                 | Default | 
 | ---- | ---- |----------------------------------------| --- |
-| lifecycle | This parameter guides the creation of the Project (or Subproject) with example files for the intended lifecycle driver | ansible, sol003, sol005, restconf, netconf | ansible |
+| lifecycle | This parameter guides the creation of the Project (or Subproject) with example files for the intended lifecycle driver | ansible, sol003, sol005, restconf, netconf, velocloud, viptela | ansible |
 | inf | This parameter guides the creation of the Project (or Subproject) with example files for the intended infrastructure driver | openstack               | openstack |

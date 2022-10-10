@@ -3,3 +3,5 @@ recursive-include lmctl/project/handlers/brent/sol003 *
 recursive-include lmctl/project/handlers/brent/sol005 *
 recursive-include lmctl/project/handlers/brent/restconf *
 recursive-include lmctl/project/handlers/brent/netconf *
+recursive-include lmctl/project/handlers/brent/velocloud *
+recursive-include lmctl/project/handlers/brent/viptela *

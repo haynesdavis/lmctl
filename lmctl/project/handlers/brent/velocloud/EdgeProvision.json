@@ -1,0 +1,9 @@
+{
+  "enterpriseId": {{ enterpriseId }},
+  "configurationId": {{ configurationId }},
+  "alertsEnabled": "{{ alertsEnabled }}",
+  "modelNumber": "{{ modelNumber }}",
+  "edgeLicenseId": {{ edgeLicenseId }},
+  "deviceFamily": "{{ deviceFamily }}",
+  "name": "{{ sdwanName }}"
+}
